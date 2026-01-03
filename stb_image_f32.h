@@ -89,10 +89,7 @@ stbi_inline static float stbi__clamp_f32(float x) {
 
 static void stbi__idct_block_f32(float* out, int out_stride, short data[64])
 {
-  //TODO: verify these result in -1/1 min/max ranges
-//  static const float div = 1.0 / 4096;
   static const float div1020 = 1.0 / 1020.0;
-  static const float div2m = 1.0 / (1020.0 * 2048.0 * 2.0);
   int i;
   float val[64], * v = val;
   float* o;
@@ -111,17 +108,16 @@ static void stbi__idct_block_f32(float* out, int out_stride, short data[64])
             //TODO: test
             v[0] = v[8] = v[16] = v[24] = v[32] = v[40] = v[48] = v[56] = dcterm * div1020;
         } else {
-            //TODO: convert this to compute float32 values directly from short data[]
-            STBI__IDCT_1D(d[0], d[8], d[16], d[24], d[32], d[40], d[48], d[56])
-            // constants scaled things up; let's bring them back down
-            v[ 0] = (x0 + t3) * div2m;
-            v[56] = (x0 - t3) * div2m;
-            v[ 8] = (x1 + t2) * div2m;
-            v[48] = (x1 - t2) * div2m;
-            v[16] = (x2 + t1) * div2m;
-            v[40] = (x2 - t1) * div2m;
-            v[24] = (x3 + t0) * div2m;
-            v[32] = (x3 - t0) * div2m;
+            STBI__IDCT_1D_F32(d[0], d[8], d[16], d[24], d[32], d[40], d[48], d[56])
+            // Inputs were fixed point; let's bring them back down
+            v[ 0] = (x0 + t3) * div1020;
+            v[56] = (x0 - t3) * div1020;
+            v[ 8] = (x1 + t2) * div1020;
+            v[48] = (x1 - t2) * div1020;
+            v[16] = (x2 + t1) * div1020;
+            v[40] = (x2 - t1) * div1020;
+            v[24] = (x3 + t0) * div1020;
+            v[32] = (x3 - t0) * div1020;
         }
     }
 
