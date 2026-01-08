@@ -372,7 +372,7 @@ static float* stbi__resample_row_hv_2_f32(float* out, float* in_near, float* in_
         out[i * 2 - 1] = .75f * t0 + .25f * t1;
         out[i * 2] = .75f * t1 + .25f * t0;
     }
-    out[w * 2 - 1] = .25f * t1 + .5f;
+    out[w * 2 - 1] = .25f * t1;
 
     STBI_NOTUSED(hs);
 
