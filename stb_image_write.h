@@ -1527,9 +1527,9 @@ static int stbi_write_jpg_core(stbi__write_context *s, int width, int height, in
       int bitBuf=0, bitCnt=0;
       // comp == 2 is grey+alpha (alpha is ignored)
       int ofsG = comp > 2 ? 1 : 0, ofsB = comp > 2 ? 2 : 0;
-      const unsigned char *dataR = (const unsigned char *)data;
-      const unsigned char *dataG = dataR + ofsG;
-      const unsigned char *dataB = dataR + ofsB;
+      const float *dataR = (const float *)data;
+      const float *dataG = dataR + ofsG;
+      const float *dataB = dataR + ofsB;
       int x, y, pos;
       if(subsample) {
          for(y = 0; y < height; y += 16) {
@@ -1543,9 +1543,9 @@ static int stbi_write_jpg_core(stbi__write_context *s, int width, int height, in
                      // if col >= width => use pixel from last input column
                      int p = base_p + ((col < width) ? col : (width-1))*comp;
                      float r = dataR[p], g = dataG[p], b = dataB[p];
-                     Y[pos]= +0.29900f*r + 0.58700f*g + 0.11400f*b - 128;
-                     U[pos]= -0.16874f*r - 0.33126f*g + 0.50000f*b;
-                     V[pos]= +0.50000f*r - 0.41869f*g - 0.08131f*b;
+                     Y[pos]= 255.0f * ( + 0.29900f * r + 0.58700f * g + 0.11400f * b - .5f);
+                     U[pos]= 255.0f * ( - 0.16874f * r - 0.33126f * g + 0.50000f * b);
+                     V[pos]= 255.0f * ( + 0.50000f * r - 0.41869f * g - 0.08131f * b);
                   }
                }
                DCY = stbiw__jpg_processDU(s, &bitBuf, &bitCnt, Y+0,   16, fdtbl_Y, DCY, YDC_HT, YAC_HT);
@@ -1581,9 +1581,9 @@ static int stbi_write_jpg_core(stbi__write_context *s, int width, int height, in
                      // if col >= width => use pixel from last input column
                      int p = base_p + ((col < width) ? col : (width-1))*comp;
                      float r = dataR[p], g = dataG[p], b = dataB[p];
-                     Y[pos]= +0.29900f*r + 0.58700f*g + 0.11400f*b - 128;
-                     U[pos]= -0.16874f*r - 0.33126f*g + 0.50000f*b;
-                     V[pos]= +0.50000f*r - 0.41869f*g - 0.08131f*b;
+                     Y[pos]= 255.0f * (+0.29900f*r + 0.58700f*g + 0.11400f*b - .5f);
+                     U[pos]= 255.0f * (-0.16874f*r - 0.33126f*g + 0.50000f*b);
+                     V[pos]= 255.0f * (+0.50000f*r - 0.41869f * g - 0.08131f * b);
                   }
                }
 
