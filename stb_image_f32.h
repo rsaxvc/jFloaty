@@ -535,7 +535,7 @@ static float* load_jpeg_image_f32(stbi__jpeg* z, int* out_x, int* out_y, int* co
                         }
                     }
                     else {
-                      f32set(out, j % 2, z->s->img_x * n);
+                      f32set(out, (float)(j % 2), z->s->img_x * n);
                       z->YCbCr_to_RGB_kernel((stbi_uc*)out, (stbi_uc*)y, (stbi_uc*)coutput[1], (stbi_uc*)coutput[2], z->s->img_x, n);
                     }
                 }
