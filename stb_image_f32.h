@@ -89,7 +89,11 @@ stbi_inline static float stbi__clamp_f32(float x) {
 
 static void stbi__idct_block_f32(float* out, int out_stride, short data[64])
 {
-  static const float div1020 = 1.0f / 1020.0f;
+  //a mystery:
+  //When I JPEG an 8x8 0xFF image, I get a max of +1020
+  //When I JPEG an 8x8 0x00 image, I get a min of -1020
+  // This is 1.0/1020.0f, rounded down to IEEE float32
+  static const float div1020 = 0.00098039209842681884765625f;
   int i;
   float val[64], * v = val;
   float* o;
