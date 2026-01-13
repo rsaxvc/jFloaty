@@ -480,7 +480,7 @@ static float* load_jpeg_image_f32(stbi__jpeg* z, int* out_x, int* out_y, int* co
 
             // allocate line buffer big enough for upsampling off the edges
             // with upsample factor of 4
-            z->img_comp[k].linebuf = (stbi_uc*)stbi__malloc_mad2(sizeof(float), z->s->img_x, 3);
+            z->img_comp[k].linebuf = (stbi_uc*)stbi__malloc_mad2(sizeof(float), z->s->img_x, 3 * sizeof(float));
             if (!z->img_comp[k].linebuf) { stbi__cleanup_jpeg(z); return (float*)stbi__errpuc("outofmem", "Out of memory"); }
 
             r->hs = z->img_h_max / z->img_comp[k].h;
@@ -498,7 +498,7 @@ static float* load_jpeg_image_f32(stbi__jpeg* z, int* out_x, int* out_y, int* co
         }
 
         // can't error after this so, this is safe
-        output = (float*)stbi__malloc_mad4(sizeof(float), n, z->s->img_x, z->s->img_y, 1);
+        output = (float*)stbi__malloc_mad4(sizeof(float), n, z->s->img_x, z->s->img_y, sizeof(float));
         if (!output) { stbi__cleanup_jpeg(z); return (float*)stbi__errpuc("outofmem", "Out of memory"); }
 
         // now go ahead and resample
