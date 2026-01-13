@@ -6,13 +6,15 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_JPEG
 #include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 static int desired_channels = 1;
 
 static int fltVecCmp(const void* l_, const void* r_) {
   const float *l = (const float*)l_;
   const float *r = (const float*)r_;
-  for (unsigned i = 0; i < desired_channels; ++i) {
+  for (int i = 0; i < desired_channels; ++i) {
     if (r[i] > l[i]) return 1;
     if (l[i] > r[i]) return-1;
   }
@@ -22,7 +24,6 @@ static int fltVecCmp(const void* l_, const void* r_) {
 
 int main()
 {
-    std::cout << "Hello World!\n";
 
 #if 0
     for (unsigned i = 0; i < 10; ++i) {
@@ -49,6 +50,7 @@ int main()
     }
 #endif
 
+#if 0
     // --- Reading from a file (mode: "r" for read) ---
     FILE* fp = fopen("input.jpg", "rb");
     if (fp == NULL) {
@@ -98,6 +100,39 @@ int main()
       pcount += !memcmp(pixel, pixel - desired_channels, sizeof(float) * desired_channels);
     }
     std::cout << pcount << std::endl;
+#endif
+
+#if 1
+    // --- Reading from a file (mode: "r" for read) ---
+    FILE* fp = fopen("input.fff.data", "rb");
+    if (fp == NULL) {
+      printf("Error opening file for reading!\n");
+      exit(__LINE__);
+    }
+
+    const int w = 1280;
+    const int h = 960;
+    const int comp = 3;
+    const int nPixels = w * h;
+    const int nFloats = nPixels * comp;
+
+    float* pixels = (float*)malloc(sizeof(float) * nFloats);
+    if(!pixels){
+      std::cerr << "malloc() failure" << std::endl;
+      exit(__LINE__);
+    }
+
+    if (nFloats != fread(pixels, sizeof(float), nFloats, fp)) {
+      std::cerr << "fread() failure" << std::endl;
+      exit(__LINE__);
+    }
+
+    if (!stbi_write_jpg("output.jpg", w, h, comp, pixels, 99)) {
+      std::cerr << "stbi_write_jpg() failure" << std::endl;
+      exit(__LINE__);
+    }
+    free(pixels);
+#endif
 
     return 0;
 }
