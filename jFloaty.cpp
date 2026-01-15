@@ -142,6 +142,11 @@ int main(int nArgs, const char* args[])
     if (!strcmp(args[arg], "-h")) {
       usage(args[0]);
     }
+    else if (!strcmp(args[arg], "-w") && more) {
+      arg++;
+      w = strtol(args[arg], NULL, 10);
+      std::cout << "width set to " << w << std::endl;
+    }
     else if (!strcmp(args[arg], "-q") && more) {
       arg++;
       q = strtol(args[arg], NULL, 10);
@@ -158,7 +163,11 @@ int main(int nArgs, const char* args[])
         std::cerr << "no buffer loaded" << std::endl;
         exit(__LINE__);
       }
-      else if (strEndsWith(args[arg], ".fff.data")) {
+      if ((strEndsWith(args[arg], ".f.data") && c != 1) || (strEndsWith(args[arg], ".fff.data") && c != 3)) {
+        std::cerr << "cannot write " << c << " channel image to " << args[arg] << std::endl;
+        exit(__LINE__);
+      }
+      else if (strEndsWith(args[arg], ".fff.data") || strEndsWith(args[arg], ".f.data")) {
         FILE* fp = fopen(args[arg], "wb");
         if (!fp) {
           std::cerr << "unable to open " << args[arg] << std::endl;
