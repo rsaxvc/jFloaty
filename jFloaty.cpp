@@ -63,9 +63,19 @@ static void usage(const char* progName) {
   std::cerr << "\t-s #generate some statistics" << std::endl;
   std::cerr << "\t-o <filename> #safe buffer to file" << std::endl;
   std::cerr << std::endl;
+  std::cerr << "\t-w <width> #Set image width for raw-float loading" << std::endl;
+  std::cerr << std::endl;
   std::cerr << "\t-idct #run idct self test" << std::endl;
   std::cerr << std::endl;
   std::cerr << "\t-q 0-99 #Set JPEG encoder quality factor" << std::endl;
+  std::cerr << std::endl;
+  std::cerr << std::endl;
+  std::cerr << "Example: RGBFFF -> JPG" << std::endl;
+  std::cerr << "\t" << progName << " -w 1280 -i input.fff.data -q 95 -o output.jpg" << std::endl;
+  std::cerr << "Example: JPG -> RGBFFF" << std::endl;
+  std::cerr << "\t" << progName << " -i input.jpg -o output.fff.data" << std::endl;
+  std::cerr << std::endl;
+  std::cerr << std::endl;
 }
 
 static bool strEndsWith(const char* haystack, const char* needle) {
