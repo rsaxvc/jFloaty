@@ -1,7 +1,7 @@
 #ifndef STBI_INCLUDE_STB_IMAGE_F32_H
 #define STBI_INCLUDE_STB_IMAGE_F32_H
 
-#if defined(STBI_NO_JPEG) && defined(STBI_NO_PNG) && defined(STBI_NO_BMP) && defined(STBI_NO_PSD) && defined(STBI_NO_TGA) && defined(STBI_NO_GIF) && defined(STBI_NO_PIC) && defined(STBI_NO_PNM)
+#if defined(STBI_NO_JF32)
 // nothing
 #else
 //////////////////////////////////////////////////////////////////////////////
@@ -41,7 +41,7 @@ static float stbi__compute_y_f32(float r, float g, float b)
 //      - some SIMD kernels for common paths on targets with SSE2/NEON
 //      - uses a lot of intermediate memory, could cache poorly
 
-#ifndef STBI_NO_JPEG
+#ifndef STBI_NO_JF32
 
 // derived from jidctint -- DCT_ISLOW
 #define STBI__IDCT_1D_F32(s0,s1,s2,s3,s4,s5,s6,s7) \
@@ -139,175 +139,6 @@ static void stbi__idct_block_f32(float* out, int out_stride, short data[64])
         o[4] = stbi__clamp_f32((x3 - t0)*.5f+.5f);
     }                                         
 }
-
-static int stbi__parse_entropy_coded_data_f32(stbi__jpeg* z)
-{
-    stbi__jpeg_reset(z);
-    if (!z->progressive) {
-        if (z->scan_n == 1) {
-            int i, j;
-            STBI_SIMD_ALIGN(short, data[64]);
-            int n = z->order[0];
-            // non-interleaved data, we just need to process one block at a time,
-            // in trivial scanline order
-            // number of blocks to do just depends on how many actual "pixels" this
-            // component has, independent of interleaved MCU blocking and such
-            int w = (z->img_comp[n].x + 7) >> 3;
-            int h = (z->img_comp[n].y + 7) >> 3;
-            for (j = 0; j < h; ++j) {
-                for (i = 0; i < w; ++i) {
-                    int ha = z->img_comp[n].ha;
-                    if (!stbi__jpeg_decode_block(z, data, z->huff_dc + z->img_comp[n].hd, z->huff_ac + ha, z->fast_ac[ha], n, z->dequant[z->img_comp[n].tq])) return 0;
-                    z->idct_block_kernel(z->img_comp[n].data + (z->img_comp[n].w2 * j * 8 + i * 8 ) * sizeof(float), z->img_comp[n].w2, data);
-                    // every data block is an MCU, so countdown the restart interval
-                    if (--z->todo <= 0) {
-                        if (z->code_bits < 24) stbi__grow_buffer_unsafe(z);
-                        // if it's NOT a restart, then just bail, so we get corrupt data
-                        // rather than no data
-                        if (!STBI__RESTART(z->marker)) return 1;
-                        stbi__jpeg_reset(z);
-                    }
-                }
-            }
-            return 1;
-        }
-        else { // interleaved
-            int i, j, k, x, y;
-            STBI_SIMD_ALIGN(short, data[64]);
-            for (j = 0; j < z->img_mcu_y; ++j) {
-                for (i = 0; i < z->img_mcu_x; ++i) {
-                    // scan an interleaved mcu... process scan_n components in order
-                    for (k = 0; k < z->scan_n; ++k) {
-                        int n = z->order[k];
-                        // scan out an mcu's worth of this component; that's just determined
-                        // by the basic H and V specified for the component
-                        for (y = 0; y < z->img_comp[n].v; ++y) {
-                            for (x = 0; x < z->img_comp[n].h; ++x) {
-                                int x2 = (i * z->img_comp[n].h + x) * 8;
-                                int y2 = (j * z->img_comp[n].v + y) * 8;
-                                int ha = z->img_comp[n].ha;
-                                if (!stbi__jpeg_decode_block(z, data, z->huff_dc + z->img_comp[n].hd, z->huff_ac + ha, z->fast_ac[ha], n, z->dequant[z->img_comp[n].tq])) return 0;
-                                z->idct_block_kernel(z->img_comp[n].data + (z->img_comp[n].w2 * y2 + x2) * sizeof(float), z->img_comp[n].w2, data);
-                            }
-                        }
-                    }
-                    // after all interleaved components, that's an interleaved MCU,
-                    // so now count down the restart interval
-                    if (--z->todo <= 0) {
-                        if (z->code_bits < 24) stbi__grow_buffer_unsafe(z);
-                        if (!STBI__RESTART(z->marker)) return 1;
-                        stbi__jpeg_reset(z);
-                    }
-                }
-            }
-            return 1;
-        }
-    }
-    else {
-        if (z->scan_n == 1) {
-            int i, j;
-            int n = z->order[0];
-            // non-interleaved data, we just need to process one block at a time,
-            // in trivial scanline order
-            // number of blocks to do just depends on how many actual "pixels" this
-            // component has, independent of interleaved MCU blocking and such
-            int w = (z->img_comp[n].x + 7) >> 3;
-            int h = (z->img_comp[n].y + 7) >> 3;
-            for (j = 0; j < h; ++j) {
-                for (i = 0; i < w; ++i) {
-                    short* data = z->img_comp[n].coeff + 64 * (i + j * z->img_comp[n].coeff_w);
-                    if (z->spec_start == 0) {
-                        if (!stbi__jpeg_decode_block_prog_dc(z, data, &z->huff_dc[z->img_comp[n].hd], n))
-                            return 0;
-                    }
-                    else {
-                        int ha = z->img_comp[n].ha;
-                        if (!stbi__jpeg_decode_block_prog_ac(z, data, &z->huff_ac[ha], z->fast_ac[ha]))
-                            return 0;
-                    }
-                    // every data block is an MCU, so countdown the restart interval
-                    if (--z->todo <= 0) {
-                        if (z->code_bits < 24) stbi__grow_buffer_unsafe(z);
-                        if (!STBI__RESTART(z->marker)) return 1;
-                        stbi__jpeg_reset(z);
-                    }
-                }
-            }
-            return 1;
-        }
-        else { // interleaved
-            int i, j, k, x, y;
-            for (j = 0; j < z->img_mcu_y; ++j) {
-                for (i = 0; i < z->img_mcu_x; ++i) {
-                    // scan an interleaved mcu... process scan_n components in order
-                    for (k = 0; k < z->scan_n; ++k) {
-                        int n = z->order[k];
-                        // scan out an mcu's worth of this component; that's just determined
-                        // by the basic H and V specified for the component
-                        for (y = 0; y < z->img_comp[n].v; ++y) {
-                            for (x = 0; x < z->img_comp[n].h; ++x) {
-                                int x2 = (i * z->img_comp[n].h + x);
-                                int y2 = (j * z->img_comp[n].v + y);
-                                short* data = z->img_comp[n].coeff + 64 * (x2 + y2 * z->img_comp[n].coeff_w);
-                                if (!stbi__jpeg_decode_block_prog_dc(z, data, &z->huff_dc[z->img_comp[n].hd], n))
-                                    return 0;
-                            }
-                        }
-                    }
-                    // after all interleaved components, that's an interleaved MCU,
-                    // so now count down the restart interval
-                    if (--z->todo <= 0) {
-                        if (z->code_bits < 24) stbi__grow_buffer_unsafe(z);
-                        if (!STBI__RESTART(z->marker)) return 1;
-                        stbi__jpeg_reset(z);
-                    }
-                }
-            }
-            return 1;
-        }
-    }
-}
-
-// decode image to YCbCr format
-static int stbi__decode_jpeg_image_f32(stbi__jpeg* j)
-{
-    int m;
-    for (m = 0; m < 4; m++) {
-        j->img_comp[m].raw_data = NULL;
-        j->img_comp[m].raw_coeff = NULL;
-    }
-    j->restart_interval = 0;
-    if (!stbi__decode_jpeg_header(j, STBI__SCAN_load)) return 0;
-    m = stbi__get_marker(j);
-    while (!stbi__EOI(m)) {
-        if (stbi__SOS(m)) {
-            if (!stbi__process_scan_header(j)) return 0;
-            if (!stbi__parse_entropy_coded_data_f32(j)) return 0;
-            if (j->marker == STBI__MARKER_none) {
-                j->marker = stbi__skip_jpeg_junk_at_end(j);
-                // if we reach eof without hitting a marker, stbi__get_marker() below will fail and we'll eventually return 0
-            }
-            m = stbi__get_marker(j);
-            if (STBI__RESTART(m))
-                m = stbi__get_marker(j);
-        }
-        else if (stbi__DNL(m)) {
-            int Ld = stbi__get16be(j->s);
-            stbi__uint32 NL = stbi__get16be(j->s);
-            if (Ld != 4) return stbi__err("bad DNL len", "Corrupt JPEG");
-            if (NL != j->s->img_y) return stbi__err("bad DNL height", "Corrupt JPEG");
-            m = stbi__get_marker(j);
-        }
-        else {
-            if (!stbi__process_marker(j, m)) return 1;
-            m = stbi__get_marker(j);
-        }
-    }
-    if (j->progressive)
-        stbi__jpeg_finish(j);
-    return 1;
-}
-
 
 typedef float* (*resample_row_func_f32)(float* out, float* in0, float* in1,
     int w, int hs);
@@ -454,7 +285,7 @@ static float* load_jpeg_image_f32(stbi__jpeg* z, int* out_x, int* out_y, int* co
     if (req_comp < 0 || req_comp > 4) return (float*)stbi__errpuc("bad req_comp", "Internal error");
 
     // load a jpeg image from whichever source, but leave in YCbCr format
-    if (!stbi__decode_jpeg_image_f32(z)) { stbi__cleanup_jpeg(z); return NULL; }
+    if (!stbi__decode_jpeg_image(z)) { stbi__cleanup_jpeg(z); return NULL; }
 
     // determine actual number of components to generate
     n = req_comp ? req_comp : z->s->img_n >= 3 ? 3 : 1;
@@ -484,7 +315,7 @@ static float* load_jpeg_image_f32(stbi__jpeg* z, int* out_x, int* out_y, int* co
 
             // allocate line buffer big enough for upsampling off the edges
             // with upsample factor of 4
-            z->img_comp[k].linebuf = (stbi_uc*)stbi__malloc_mad2(sizeof(float), z->s->img_x, 3 * sizeof(float));
+            z->img_comp[k].linebuf = (stbi_uc*)stbi__malloc_mad2(z->bpc, z->s->img_x, 3 * z->bpc);
             if (!z->img_comp[k].linebuf) { stbi__cleanup_jpeg(z); return (float*)stbi__errpuc("outofmem", "Out of memory"); }
 
             r->hs = z->img_h_max / z->img_comp[k].h;
@@ -502,7 +333,7 @@ static float* load_jpeg_image_f32(stbi__jpeg* z, int* out_x, int* out_y, int* co
         }
 
         // can't error after this so, this is safe
-        output = (float*)stbi__malloc_mad4(sizeof(float), n, z->s->img_x, z->s->img_y, sizeof(float));
+        output = (float*)stbi__malloc_mad4(z->bpc, n, z->s->img_x, z->s->img_y, z->bpc);
         if (!output) { stbi__cleanup_jpeg(z); return (float*)stbi__errpuc("outofmem", "Out of memory"); }
 
         // now go ahead and resample
@@ -627,6 +458,7 @@ static void* stbi__jpeg_load_f32(stbi__context* s, int* x, int* y, int* comp, in
     memset(j, 0, sizeof(stbi__jpeg));
     STBI_NOTUSED(ri);
     j->s = s;
+    j->bpc = sizeof(float);
     stbi__setup_jpeg_f32(j);
     void * result = load_jpeg_image_f32(j, x, y, comp, req_comp);
     STBI_FREE(j);
