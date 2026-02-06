@@ -3099,7 +3099,7 @@ static void stbi__jpeg_finish(stbi__jpeg *z)
             for (i=0; i < w; ++i) {
                short *data = z->img_comp[n].coeff + 64 * (i + j * z->img_comp[n].coeff_w);
                stbi__jpeg_dequantize(data, z->dequant[z->img_comp[n].tq]);
-               z->idct_block_kernel(z->img_comp[n].data+z->img_comp[n].w2*j*8+i*8, z->img_comp[n].w2, data);
+               z->idct_block_kernel(z->img_comp[n].data+(z->img_comp[n].w2*j*8+i*8)*z->bpc, z->img_comp[n].w2, data);
             }
          }
       }
