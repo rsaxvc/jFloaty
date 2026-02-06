@@ -1,6 +1,9 @@
 jFloaty/
 x64/
 Debug/
+*.exe
+*.o
+*.a
 .vs
 *.vcxproj.filters
 *.vcxproj.user
