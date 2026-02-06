@@ -253,7 +253,7 @@ int main(int nArgs, const char* args[])
       else if (strEndsWith(args[arg], ".jpg")) {
         std::cout << "Checking channel count:";
         if (!stbi_info(args[arg], &w, &h, &c)) {
-          std::cerr << "stbi_info_from_file() failure:" << std::endl;
+          std::cerr << "stbi_info_from_file() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
           exit(__LINE__);
         }
         std::cout << c << std::endl;
@@ -261,7 +261,7 @@ int main(int nArgs, const char* args[])
         std::cout << "Reading data from " << args[arg] << std::endl;
         buffer = stbi_loadf(args[arg], &w, &h, &c, c);
         if (!buffer) {
-          std::cerr << "stbi_loadf() failure: " << stbi_failure_reason() << std::endl;
+          std::cerr << "stbi_loadf() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
           exit(__LINE__);
         }
         std::cout << "Loaded " << args[arg] << " " << w << "x"<< h << " c=" << c << std::endl;
