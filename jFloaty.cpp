@@ -86,6 +86,31 @@ static bool strEndsWith(const char* haystack, const char* needle) {
   return 0 == strcmp(haystack + haystackLen - needleLen, needle);
 }
 
+static float * rot90(float * in, int & w, int & h, int c) {
+  float* out = (float*)malloc(sizeof(float) * w * h * c);
+  if (!out) {
+    std::cerr << "out of memory" << std::endl;
+    exit(__LINE__);
+  }
+
+  for (int x = 0; x < w; ++x) {
+    for (int y = 0; y < h; ++y) {
+      memcpy(out + c * ((w-x-1) * h + y), in + c * (y * w + x), sizeof(*in) * c);
+    }
+  }
+  std::swap(w, h);
+  free(in);
+  return out;
+}
+
+static float* rot180(float* in, int & w, int & h, int c) {
+  return rot90(rot90(in, w, h, c), w, h, c);
+}
+
+static float* rot270(float* in, int & w, int & h, int c) {
+  return rot180(rot90(in, w, h, c), w, h, c);
+}
+
 static void stats(const float* buf, size_t n, int c) {
   float * pixels = (float*)malloc(sizeof(float) * n * c);
   memcpy(pixels, buf, sizeof(float) * n * c);
@@ -132,6 +157,12 @@ int main(int nArgs, const char* args[])
       "-i", "input1.jpg", "-s",
       "-o", "output1.fff.data",
       "-o", "output1.jpg",
+      "-rot90",
+      "-o", "output1_r90.jpg",
+      "-rot180",
+      "-o", "output1_r90_180.jpg",
+      "-rot270",
+      "-o", "output1_r90_180_270.jpg",
       "-i", "input2.fff.data",
       "-o", "output2.fff.data",
       "-o", "output2.jpg"
@@ -160,6 +191,15 @@ int main(int nArgs, const char* args[])
       arg++;
       q = strtol(args[arg], NULL, 10);
       std::cout << "JPEG encoder quality factor set to " << q << std::endl;
+    }
+    else if (!strcmp(args[arg], "-rot90")) {
+      buffer = rot90(buffer, w, h, c);
+    }
+    else if (!strcmp(args[arg], "-rot180")) {
+      buffer = rot180(buffer, w, h, c);
+    }
+    else if (!strcmp(args[arg], "-rot270")) {
+      buffer = rot270(buffer, w, h, c);
     }
     else if (!strcmp(args[arg], "-o")) {
       if (!more) {
