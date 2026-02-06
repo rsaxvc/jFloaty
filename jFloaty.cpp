@@ -148,7 +148,7 @@ int main(int nArgs, const char* args[])
   for (int arg = 1; arg < nArgs; ++arg) {
     bool more = arg + 1 < nArgs;
 
-    if (!strcmp(args[arg], "-h")) {
+    if (!strcmp(args[arg], "-h") || !strcmp(args[arg], "--help")) {
       usage(args[0]);
     }
     else if (!strcmp(args[arg], "-w") && more) {
