@@ -188,14 +188,14 @@ int main(int nArgs, const char* args[])
           exit(__LINE__);
         }
         fclose(fp);
-        std::cerr << "wrote " << args[arg] << std::endl;
+        std::cout << "wrote " << args[arg] << std::endl;
       }
       else if (strEndsWith(args[arg], ".jpg")) {
         if (!stbi_write_jpg(args[arg], w, h, c, buffer, q)) {
           std::cerr << "stbi_write_jpg() failure" << std::endl;
           exit(__LINE__);
         }
-        std::cerr << "wrote " << args[arg] << std::endl;
+        std::cout << "wrote " << args[arg] << std::endl;
       }
       else {
         std::cerr << "do not know how to write: " << args[arg] << std::endl;
