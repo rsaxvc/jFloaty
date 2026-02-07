@@ -113,12 +113,6 @@ static float* rot270(float* in, int & w, int & h, int c) {
   return rot180(rot90(in, w, h, c), w, h, c);
 }
 
-static float clamp(float x, float xmin, float xmax) {
-  if (x < xmin) return xmin;
-  if (x > xmax) return xmax;
-  return x;
-}
-
 static uint8_t* dither8(const float* buffer, int w, int h, int c) {
   uint8_t* ret = (uint8_t*)malloc(w * h * c);
   float* errLine0 = (float*)calloc(w * c, sizeof(float));
@@ -268,7 +262,7 @@ int main(int nArgs, const char* args[])
           std::cerr << "unable to open " << args[arg] << std::endl;
           exit(__LINE__);
         }
-        int nFloats = w * h * c;
+        size_t nFloats = w * h * c;
         if (nFloats != fwrite(buffer, sizeof(float), nFloats, fp)) {
           std::cerr << "fwrite() failure writing " << args[arg] << std::endl;
           exit(__LINE__);
@@ -336,7 +330,7 @@ int main(int nArgs, const char* args[])
           }
           r = fread(buffer + w * c * h, sizeof(float), w * c, fp);
           h++;
-        } while (r == w * c);
+        } while (r == (size_t)w * c);
         if (r != 0) {
           std::cerr << "Read " << r << " samples, which is not divisible into " << w << "*" << c << "samples per row" << std::endl;
           std::cerr << "Please verify size(" << args[arg] << ") = width * height * channels * 4B" << std::endl;
