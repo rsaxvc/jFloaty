@@ -58,3 +58,15 @@ jFloaty is a patch to STB-Image that decodes JPEGs direct to float-32.
     * STB-Image's YUV888->RGB888 maps to ~4.7 million colors, so only ~28% of the RGB888 colors are reachable.
     * Patching STB-Image's YUV888->RGBFFF maps to ~10.3 million colors. Many these would've rounded to the same RGB888 integer tuples, and doesn't mean we're reaching more unique RGB88 values.
     * With 32-bit YUV input, we get many more shades.
+
+# What happens if we recompress a JPEG 10k times?
+
+![](demo/stability.jpg "Comparison of 1x and 1666x JPEG compression and decompression")
+
+This is really zoomed in on the bottom-right corner.
+The blue speckles are decoder differences within 2/255 digital codes. There are low-amplitude differences all over differences between the first few codec trips.
+The red speckles are much larger differences, that only occur on the right and bottom edges.
+
+* The sparse blue differences all over the image settle out within 4 trips through the codec.
+* On the rightmost edge you can see MCU(macroblock) boundaries. These take many more trips through the codec to reach stability, and are visibly disturbed when they do. This image isn't divisible into 8x8 MCUs, which has something to do with it.
+* Temp1667 and beyond are byte-wise identical to Temp1666.
