@@ -73,6 +73,8 @@ static void usage(const char* progName) {
   std::cerr << "\t" << progName << " -w 1280 -i input.fff.data -q 95 -o output.jpg" << std::endl;
   std::cerr << "Example: JPG -> RGBFFF" << std::endl;
   std::cerr << "\t" << progName << " -i input.jpg -o output.fff.data" << std::endl;
+  std::cerr << "Example: JPG -> PNG" << std::endl;
+  std::cerr << "\t" << progName << " -i input.jpg -o output.png" << std::endl;
   std::cerr << std::endl;
   std::cerr << std::endl;
 }
@@ -109,6 +111,49 @@ static float* rot180(float* in, int & w, int & h, int c) {
 
 static float* rot270(float* in, int & w, int & h, int c) {
   return rot180(rot90(in, w, h, c), w, h, c);
+}
+
+static float clamp(float x, float xmin, float xmax) {
+  if (x < xmin) return xmin;
+  if (x > xmax) return xmax;
+  return x;
+}
+
+static uint8_t* dither8(const float* buffer, int w, int h, int c) {
+  uint8_t* ret = (uint8_t*)malloc(w * h * c);
+  float* errLine0 = (float*)calloc(w * c, sizeof(float));
+  float* errLine1 = (float*)calloc(w * c, sizeof(float));
+  float* errLines[2] = {errLine0, errLine1};
+  if (!ret || !errLine0 || !errLine1) {
+    std::cerr << "out of memory" << std::endl;
+    exit(__LINE__);
+  }
+
+  for (int y = 0; y < h; ++y) {
+    float* errIn = errLines[y % 2];
+    float* errOut = errLines[(y + 1) % 2];
+    for (int x = 0; x < w; ++x) {
+      for (int i = 0; i < c; ++i) {
+        const float pxlF = buffer[(w * y + x) * c + i] * 255.0f + errIn[x * c + i];
+        auto pxlU8 = llrintf(pxlF);
+        if (pxlU8 < 0) pxlU8 = 0;
+        if (pxlU8 > 255) pxlU8 = 255;
+        ret[(w * y + x) * c + i] = (uint8_t)pxlU8;
+
+        float err = pxlU8 - pxlF;
+
+        if(x < w-1) errIn[x * c + i] += err * (7.0f / 16.0f);
+        if(x > 0) errOut[(x-1) * c + i] += err * (3.0f / 16.0f);
+        errOut[x * c + i] += err * (5.0f / 16.0f);
+        if(x < w-1) errOut[(x+1) * c + i] += err * (1.0f / 16.0f);
+      }
+    }
+    memset(errIn, 0x00, sizeof(float) * w * c);
+  }
+
+  free(errLine0);
+  free(errLine1);
+  return ret;
 }
 
 static void stats(const float* buf, size_t n, int c) {
@@ -156,6 +201,7 @@ int main(int nArgs, const char* args[])
       args[0], "-h", "-idct",
       "-i", "input1.jpg", "-s",
       "-o", "output1.fff.data",
+      "-o", "output1.png",
       "-o", "output1.jpg",
       "-rot90",
       "-o", "output1_r90.jpg",
@@ -165,7 +211,7 @@ int main(int nArgs, const char* args[])
       "-o", "output1_r90_180_270.jpg",
       "-i", "input2.fff.data",
       "-o", "output2.fff.data",
-      "-o", "output2.jpg"
+      "-o", "output2.jpg",
     };
     args = dummyArgs;
     nArgs = sizeof(dummyArgs) / sizeof(dummyArgs[0]);
@@ -235,6 +281,15 @@ int main(int nArgs, const char* args[])
           std::cerr << "stbi_write_jpg() failure" << std::endl;
           exit(__LINE__);
         }
+        std::cout << "wrote " << args[arg] << std::endl;
+      }
+      else if (strEndsWith(args[arg], ".png")) {
+        auto dithered = dither8(buffer, w, h, c);
+        if (!stbi_write_png(args[arg], w, h, c, dithered, 0)) {
+          std::cerr << "stbi_write_png() failure" << std::endl;
+          exit(__LINE__);
+        }
+        free(dithered);
         std::cout << "wrote " << args[arg] << std::endl;
       }
       else {
