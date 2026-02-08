@@ -150,6 +150,19 @@ static uint8_t* dither8(const float* buffer, int w, int h, int c) {
   return ret;
 }
 
+static float* expand8to32(const uint8_t* input, int w, int h, int c) {
+  float* ret = (float*)malloc(w * h * c * sizeof(float));
+  if (!ret) {
+    std::cerr << "out of memory" << std::endl;
+    exit(__LINE__);
+  }
+  constexpr float scalar = (float)(1.0 / 255.0);
+  for (int i = 0; i < w * h * c; ++i) {
+    ret[i] = input[i] * scalar;
+  }
+  return ret;
+}
+
 static void stats(const float* buf, size_t n, int c) {
   float * pixels = (float*)malloc(sizeof(float) * n * c);
   memcpy(pixels, buf, sizeof(float) * n * c);
@@ -203,6 +216,8 @@ int main(int nArgs, const char* args[])
       "-o", "output1_r90_180.jpg",
       "-rot270",
       "-o", "output1_r90_180_270.jpg",
+      "-dither",
+      "-o", "output1_r90_180_270_dither.jpg",
       "-i", "input2.fff.data",
       "-o", "output2.fff.data",
       "-o", "output2.jpg",
@@ -240,6 +255,12 @@ int main(int nArgs, const char* args[])
     }
     else if (!strcmp(args[arg], "-rot270")) {
       buffer = rot270(buffer, w, h, c);
+    }
+    else if (!strcmp(args[arg], "-dither")) {
+      uint8_t* buf8 = dither8(buffer, w, h, c);
+      free(buffer);
+      buffer = expand8to32(buf8, w, h, c);
+      free(buf8);
     }
     else if (!strcmp(args[arg], "-o")) {
       if (!more) {
