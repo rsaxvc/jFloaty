@@ -117,7 +117,7 @@ static uint8_t* dither8(const float* buffer, int w, int h, int c) {
   uint8_t* ret = (uint8_t*)malloc(w * h * c);
   float* errLine0 = (float*)calloc(w * c, sizeof(float));
   float* errLine1 = (float*)calloc(w * c, sizeof(float));
-  float* errLines[2] = {errLine0, errLine1};
+  float* errLines[2] = { errLine0, errLine1 };
   if (!ret || !errLine0 || !errLine1) {
     std::cerr << "out of memory" << std::endl;
     exit(__LINE__);
@@ -136,10 +136,10 @@ static uint8_t* dither8(const float* buffer, int w, int h, int c) {
 
         float err = pxlU8 - pxlF;
 
-        if(x < w-1) errIn[x * c + i] += err * (7.0f / 16.0f);
-        if(x > 0) errOut[(x-1) * c + i] += err * (3.0f / 16.0f);
+        if (x < w - 1) errIn[x * c + i] += err * (7.0f / 16.0f);
+        if (x > 0) errOut[(x - 1) * c + i] += err * (3.0f / 16.0f);
         errOut[x * c + i] += err * (5.0f / 16.0f);
-        if(x < w-1) errOut[(x+1) * c + i] += err * (1.0f / 16.0f);
+        if (x < w - 1) errOut[(x + 1) * c + i] += err * (1.0f / 16.0f);
       }
     }
     memset(errIn, 0x00, sizeof(float) * w * c);
