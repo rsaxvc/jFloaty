@@ -163,6 +163,19 @@ static float* expand8to32(const uint8_t* input, int w, int h, int c) {
   return ret;
 }
 
+static float* expand16to32(const uint16_t* input, int w, int h, int c) {
+  float* ret = (float*)malloc(w * h * c * sizeof(float));
+  if (!ret) {
+    std::cerr << "out of memory" << std::endl;
+    exit(__LINE__);
+  }
+  constexpr float scalar = (float)(1.0 / 65535.0);
+  for (int i = 0; i < w * h * c; ++i) {
+    ret[i] = input[i] * scalar;
+  }
+  return ret;
+}
+
 static void stats(const float* buf, size_t n, int c) {
   float * pixels = (float*)malloc(sizeof(float) * n * c);
   memcpy(pixels, buf, sizeof(float) * n * c);
@@ -375,6 +388,24 @@ int main(int nArgs, const char* args[])
           exit(__LINE__);
         }
         std::cout << "Loaded " << args[arg] << " " << w << "x"<< h << " c=" << c << std::endl;
+      }
+      else if (strEndsWith(args[arg], ".png")) {
+        std::cout << "Checking channel count:";
+        if (!stbi_info(args[arg], &w, &h, &c)) {
+          std::cerr << "stbi_info_from_file() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
+          exit(__LINE__);
+        }
+        std::cout << c << std::endl;
+
+        std::cout << "Reading data from " << args[arg] << std::endl;
+        uint16_t* buf16 = stbi_load_16(args[arg], &w, &h, &c, c);
+        buffer = expand16to32(buf16, w, h, c);
+        if (!buffer) {
+          std::cerr << "stbi_load_16() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
+          exit(__LINE__);
+        }
+        free(buf16);
+        std::cout << "Loaded " << args[arg] << " " << w << "x" << h << " c=" << c << std::endl;
       }
       else {
         std::cerr << "don't know how to load:" << args[arg] << std::endl;
