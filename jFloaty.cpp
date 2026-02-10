@@ -20,6 +20,11 @@ static int fltVecCmp(const void* l_, const void* r_) {
   return 0;
 }
 
+static void die(int line) {
+  std::cerr << "die() called at line #" << line << std::endl;
+  exit(line);
+}
+
 static void idct_test() {
   std::cout << "running inverse DCT comparison" << std::endl;
   for (unsigned i = 0; i < 10; ++i) {
@@ -92,7 +97,7 @@ static float * rot90(float * in, int & w, int & h, int c) {
   float* out = (float*)malloc(sizeof(float) * w * h * c);
   if (!out) {
     std::cerr << "out of memory" << std::endl;
-    exit(__LINE__);
+    die(__LINE__);
   }
 
   for (int x = 0; x < w; ++x) {
@@ -120,7 +125,7 @@ static uint8_t* dither8(const float* buffer, int w, int h, int c) {
   float* errLines[2] = { errLine0, errLine1 };
   if (!ret || !errLine0 || !errLine1) {
     std::cerr << "out of memory" << std::endl;
-    exit(__LINE__);
+    die(__LINE__);
   }
 
   for (int y = 0; y < h; ++y) {
@@ -154,7 +159,7 @@ static uint8_t* floor8(const float* buffer, int w, int h, int c) {
   uint8_t* ret = (uint8_t*)malloc(w * h * c);
   if (!ret) {
     std::cerr << "out of memory" << std::endl;
-    exit(__LINE__);
+    die(__LINE__);
   }
 
   for (int i = 0; i < w * h * c; ++i) {
@@ -177,7 +182,7 @@ static uint8_t* round8(const float* buffer, int w, int h, int c) {
   uint8_t* ret = (uint8_t*)malloc(w * h * c);
   if (!ret) {
     std::cerr << "out of memory" << std::endl;
-    exit(__LINE__);
+    die(__LINE__);
   }
 
   for (int i = 0; i < w * h * c; ++i) {
@@ -200,7 +205,7 @@ static float* expand8to32(const uint8_t* input, int w, int h, int c) {
   float* ret = (float*)malloc(w * h * c * sizeof(float));
   if (!ret) {
     std::cerr << "out of memory" << std::endl;
-    exit(__LINE__);
+    die(__LINE__);
   }
   constexpr float scalar = (float)(1.0 / 255.0);
   for (int i = 0; i < w * h * c; ++i) {
@@ -213,7 +218,7 @@ static float* expand16to32(const uint16_t* input, int w, int h, int c) {
   float* ret = (float*)malloc(w * h * c * sizeof(float));
   if (!ret) {
     std::cerr << "out of memory" << std::endl;
-    exit(__LINE__);
+    die(__LINE__);
   }
   constexpr float scalar = (float)(1.0 / 65535.0);
   for (int i = 0; i < w * h * c; ++i) {
@@ -277,9 +282,10 @@ int main(int nArgs, const char* args[])
       "-o", "output1_r90_180_270.jpg",
       "-dither8",
       "-o", "output1_r90_180_270_dither.jpg",
-      "-i", "input2.fff.data",
-      "-o", "output2.fff.data",
-      "-o", "output2.jpg",
+      //FFF2JPG
+      //"-i", "input2.fff.data",
+      //"-o", "output2.fff.data",
+      //"-o", "output2.jpg",
     };
     args = dummyArgs;
     nArgs = sizeof(dummyArgs) / sizeof(dummyArgs[0]);
@@ -336,28 +342,28 @@ int main(int nArgs, const char* args[])
     else if (!strcmp(args[arg], "-o")) {
       if (!more) {
         std::cerr << "missing argument to output flag" << std::endl;
-        exit(__LINE__);
+        die(__LINE__);
       }
 
       arg++;
       if (!buffer) {
         std::cerr << "no buffer loaded" << std::endl;
-        exit(__LINE__);
+        die(__LINE__);
       }
       if ((strEndsWith(args[arg], ".f.data") && c != 1) || (strEndsWith(args[arg], ".fff.data") && c != 3)) {
         std::cerr << "cannot write " << c << " channel image to " << args[arg] << std::endl;
-        exit(__LINE__);
+        die(__LINE__);
       }
       else if (strEndsWith(args[arg], ".fff.data") || strEndsWith(args[arg], ".f.data")) {
         FILE* fp = fopen(args[arg], "wb");
         if (!fp) {
           std::cerr << "unable to open " << args[arg] << std::endl;
-          exit(__LINE__);
+          die(__LINE__);
         }
         size_t nFloats = w * h * c;
         if (nFloats != fwrite(buffer, sizeof(float), nFloats, fp)) {
           std::cerr << "fwrite() failure writing " << args[arg] << std::endl;
-          exit(__LINE__);
+          die(__LINE__);
         }
         fclose(fp);
         std::cout << "wrote " << args[arg] << std::endl;
@@ -365,7 +371,7 @@ int main(int nArgs, const char* args[])
       else if (strEndsWith(args[arg], ".jpg")) {
         if (!stbi_write_jpg(args[arg], w, h, c, buffer, q)) {
           std::cerr << "stbi_write_jpg() failure" << std::endl;
-          exit(__LINE__);
+          die(__LINE__);
         }
         std::cout << "wrote " << args[arg] << std::endl;
       }
@@ -373,20 +379,20 @@ int main(int nArgs, const char* args[])
         auto dithered = dither8(buffer, w, h, c);
         if (!stbi_write_png(args[arg], w, h, c, dithered, 0)) {
           std::cerr << "stbi_write_png() failure" << std::endl;
-          exit(__LINE__);
+          die(__LINE__);
         }
         free(dithered);
         std::cout << "wrote " << args[arg] << std::endl;
       }
       else {
         std::cerr << "do not know how to write: " << args[arg] << std::endl;
-        exit(__LINE__);
+        die(__LINE__);
       }
     }
     else if (!strcmp(args[arg], "-i")) {
       if (!more) {
         std::cerr << "missing argument to input flag" << std::endl;
-        exit(__LINE__);
+        die(__LINE__);
       }
 
       free(buffer);
@@ -395,7 +401,7 @@ int main(int nArgs, const char* args[])
       arg++;
       if (strEndsWith(args[arg], ".data") && w <= 0) {
         std::cerr << "must set width before loading raw image" << std::endl;
-        exit(__LINE__);
+        die(__LINE__);
       }
       else if (strEndsWith(args[arg], ".fff.data") || strEndsWith(args[arg], ".f.data")) {
         //load RGB-FFF
@@ -406,7 +412,7 @@ int main(int nArgs, const char* args[])
         FILE* fp = fopen(args[arg], "rb");
         if (fp == NULL) {
           std::cerr << "Error opening file for reading:" << args[arg] << std::endl;
-          exit(__LINE__);
+          die(__LINE__);
         }
 
         size_t r = w * c;
@@ -417,7 +423,7 @@ int main(int nArgs, const char* args[])
             buffer = (float*)realloc(buffer, sz);
             if (!buffer) {
               std::cerr << "Out of memory" << std::endl;
-              exit(__LINE__);
+              die(__LINE__);
             }
           }
           r = fread(buffer + w * c * h, sizeof(float), w * c, fp);
@@ -426,7 +432,7 @@ int main(int nArgs, const char* args[])
         if (r != 0) {
           std::cerr << "Read " << r << " samples, which is not divisible into " << w << "*" << c << "samples per row" << std::endl;
           std::cerr << "Please verify size(" << args[arg] << ") = width * height * channels * 4B" << std::endl;
-          exit(__LINE__);
+          die(__LINE__);
         }
         h--;
         std::cout << "Loaded " << args[arg] << " " << w << "x" << h << " c=" << c << std::endl;
@@ -435,7 +441,7 @@ int main(int nArgs, const char* args[])
         std::cout << "Checking channel count:";
         if (!stbi_info(args[arg], &w, &h, &c)) {
           std::cerr << "stbi_info_from_file() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
-          exit(__LINE__);
+          die(__LINE__);
         }
         std::cout << c << std::endl;
 
@@ -443,7 +449,7 @@ int main(int nArgs, const char* args[])
         buffer = stbi_loadf(args[arg], &w, &h, &c, c);
         if (!buffer) {
           std::cerr << "stbi_loadf() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
-          exit(__LINE__);
+          die(__LINE__);
         }
         std::cout << "Loaded " << args[arg] << " " << w << "x"<< h << " c=" << c << std::endl;
       }
@@ -451,7 +457,7 @@ int main(int nArgs, const char* args[])
         std::cout << "Checking channel count:";
         if (!stbi_info(args[arg], &w, &h, &c)) {
           std::cerr << "stbi_info_from_file() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
-          exit(__LINE__);
+          die(__LINE__);
         }
         std::cout << c << std::endl;
 
@@ -460,20 +466,20 @@ int main(int nArgs, const char* args[])
         buffer = expand16to32(buf16, w, h, c);
         if (!buffer) {
           std::cerr << "stbi_load_16() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
-          exit(__LINE__);
+          die(__LINE__);
         }
         free(buf16);
         std::cout << "Loaded " << args[arg] << " " << w << "x" << h << " c=" << c << std::endl;
       }
       else {
         std::cerr << "don't know how to load:" << args[arg] << std::endl;
-        exit(__LINE__);
+        die(__LINE__);
       }
     }
     else if (!strcmp(args[arg], "-s")) {
       if (!buffer) {
         std::cerr << "Image buffer empty" << std::endl;
-        exit(__LINE__);
+        die(__LINE__);
       }
       stats(buffer, w * h, c);
     }
@@ -482,7 +488,7 @@ int main(int nArgs, const char* args[])
     }
     else {
       std::cerr << "did not understand arg: " << args[arg] << std::endl;
-      exit(__LINE__);
+      die(__LINE__);
     }
   }
 
