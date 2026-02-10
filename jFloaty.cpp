@@ -150,6 +150,52 @@ static uint8_t* dither8(const float* buffer, int w, int h, int c) {
   return ret;
 }
 
+static uint8_t* floor8(const float* buffer, int w, int h, int c) {
+  uint8_t* ret = (uint8_t*)malloc(w * h * c);
+  if (!ret) {
+    std::cerr << "out of memory" << std::endl;
+    exit(__LINE__);
+  }
+
+  for (int i = 0; i < w * h * c; ++i) {
+    auto f = floorf(255.0f * buffer[i]);
+    if (f < 0) {
+      ret[i] = 0;
+    }
+    else if (f > 255.0f) {
+      ret[i] = 255;
+    }
+    else {
+      ret[i] = (uint8_t)f;
+    }
+  }
+
+  return ret;
+}
+
+static uint8_t* round8(const float* buffer, int w, int h, int c) {
+  uint8_t* ret = (uint8_t*)malloc(w * h * c);
+  if (!ret) {
+    std::cerr << "out of memory" << std::endl;
+    exit(__LINE__);
+  }
+
+  for (int i = 0; i < w * h * c; ++i) {
+    auto f = roundf(255.0f * buffer[i]);
+    if (f < 0) {
+      ret[i] = 0;
+    }
+    else if (f > 255.0f) {
+      ret[i] = 255;
+    }
+    else {
+      ret[i] = (uint8_t)f;
+    }
+  }
+
+  return ret;
+}
+
 static float* expand8to32(const uint8_t* input, int w, int h, int c) {
   float* ret = (float*)malloc(w * h * c * sizeof(float));
   if (!ret) {
@@ -229,7 +275,7 @@ int main(int nArgs, const char* args[])
       "-o", "output1_r90_180.jpg",
       "-rot270",
       "-o", "output1_r90_180_270.jpg",
-      "-dither",
+      "-dither8",
       "-o", "output1_r90_180_270_dither.jpg",
       "-i", "input2.fff.data",
       "-o", "output2.fff.data",
@@ -269,8 +315,20 @@ int main(int nArgs, const char* args[])
     else if (!strcmp(args[arg], "-rot270")) {
       buffer = rot270(buffer, w, h, c);
     }
-    else if (!strcmp(args[arg], "-dither")) {
+    else if (!strcmp(args[arg], "-dither8")) {
       uint8_t* buf8 = dither8(buffer, w, h, c);
+      free(buffer);
+      buffer = expand8to32(buf8, w, h, c);
+      free(buf8);
+    }
+    else if (!strcmp(args[arg], "-floor8")) {
+      uint8_t* buf8 = floor8(buffer, w, h, c);
+      free(buffer);
+      buffer = expand8to32(buf8, w, h, c);
+      free(buf8);
+    }
+    else if (!strcmp(args[arg], "-round8")) {
+      uint8_t* buf8 = round8(buffer, w, h, c);
       free(buffer);
       buffer = expand8to32(buf8, w, h, c);
       free(buf8);
