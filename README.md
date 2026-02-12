@@ -21,9 +21,9 @@ Detail of Russ's mask:
 
 ![](demo/mask.gif)
 
-|          |      GIMP Alone | jFloaty+GIMP  | Notes |
-|:--------:|:----------------------------------------:|:-------------------------------------------------------:|:-:|
-|Histogram | ![](demo/input.hist.jpg "RGB888-Hist")   | ![](demo/output.hist.jpg "RGBFFF-Hist")                 | Evidence of more colors |
+Histograms:
+
+![](demo/hist.gif)
 
 
 # DSP Thoughts
