@@ -10,9 +10,12 @@ This is a picture of my friend Russ on a JetSki, but intentionally underexposed.
 
 Lets fix it with 'auto input level' feature in GIMP.
 But when we do so, the JPEG decoder has rounding error and causes a lot of banding.
-jFloaty is a patch to STB-Image that decodes JPEGs direct to float-32. Comparisons:
+jFloaty is a hack within STB-Image that decodes JPEGs directly to float-32 pixels
+without integer quantization(16 million RGB888 colors is oddly not always enough),
+and also supports encoding float-32 pixels directly into JPEGs as well. Comparisons:
 
 ![](demo/russ.gif)
+(the blockier one is the "before")
 
 Detail of Russ's mask:
 
@@ -63,7 +66,7 @@ Detail of Russ's mask:
     * Patching STB-Image's YUV888->RGBFFF maps to ~10.3 million colors. Many these would've rounded to the same RGB888 integer tuples, and doesn't mean we're reaching more unique RGB88 values.
     * With 32-bit YUV input, we get many more shades.
 
-# What happens if we recompress a JPEG 10k times?
+# What happens if we recompress a JPEG infinitely many times?
 
 ![](demo/stability.jpg "Comparison of 1x and 1666x JPEG compression and decompression")
 
@@ -72,5 +75,5 @@ The blue speckles are decoder differences within 2/255 digital codes. There are 
 The red speckles are much larger differences, that only occur on the right and bottom edges.
 
 * The sparse blue differences all over the image settle out within 4 trips through the codec.
-* On the rightmost edge you can see MCU(macroblock) boundaries. These take many more trips through the codec to reach stability, and are visibly disturbed when they do. This image isn't divisible into 8x8 MCUs, which has something to do with it.
+* On the rightmost edge you can see MCU(macroblock) boundaries. These take many more trips through the codec to reach stability, and are visibly disturbed when they do. This image isn't divisible into 8x8 MCUs, so those partially filled border MCUs continue to lose data every trip until there's only some very basic DCT coefficients left.
 * Temp1667 and beyond are byte-wise identical to Temp1666.
