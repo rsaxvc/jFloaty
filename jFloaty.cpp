@@ -66,6 +66,7 @@ static void usage(const char* progName) {
   std::cerr << "\t-i <filename> #load file into buffer" << std::endl;
   std::cerr << "\t-s #generate some statistics" << std::endl;
   std::cerr << "\t-o <filename> #safe buffer to file" << std::endl;
+  std::cerr << "\t-o16 <filename> #safe buffer to 16-bit file" << std::endl;
   std::cerr << std::endl;
   std::cerr << "\t-w <width> #Set image width for raw-float loading" << std::endl;
   std::cerr << std::endl;
@@ -118,6 +119,7 @@ static float* rot270(float* in, int & w, int & h, int c) {
   return rot180(rot90(in, w, h, c), w, h, c);
 }
 
+//TODO: isolate the dither from the pixel conversion and make adjustable bit depth
 static uint8_t* dither8(const float* buffer, int w, int h, int c) {
   uint8_t* ret = (uint8_t*)malloc(w * h * c);
   float* errLine0 = (float*)calloc(w * c, sizeof(float));
@@ -140,6 +142,45 @@ static uint8_t* dither8(const float* buffer, int w, int h, int c) {
         ret[(w * y + x) * c + i] = (uint8_t)pxlU8;
 
         float err = pxlU8 - pxlF;
+
+        if (x < w - 1) errIn[x * c + i] += err * (7.0f / 16.0f);
+        if (x > 0) errOut[(x - 1) * c + i] += err * (3.0f / 16.0f);
+        errOut[x * c + i] += err * (5.0f / 16.0f);
+        if (x < w - 1) errOut[(x + 1) * c + i] += err * (1.0f / 16.0f);
+      }
+    }
+    memset(errIn, 0x00, sizeof(float) * w * c);
+  }
+
+  free(errLine0);
+  free(errLine1);
+  return ret;
+}
+
+//huge-hack! Outputs reverse-endian pixels
+//TODO: fix stbi_write_png16() to take native pixels
+static uint16_t* dither16(const float* buffer, int w, int h, int c) {
+  uint16_t* ret = (uint16_t*)malloc(w * h * c * 2);
+  float* errLine0 = (float*)calloc(w * c, sizeof(float));
+  float* errLine1 = (float*)calloc(w * c, sizeof(float));
+  float* errLines[2] = { errLine0, errLine1 };
+  if (!ret || !errLine0 || !errLine1) {
+    std::cerr << "out of memory" << std::endl;
+    die(__LINE__);
+  }
+
+  for (int y = 0; y < h; ++y) {
+    float* errIn = errLines[y % 2];
+    float* errOut = errLines[(y + 1) % 2];
+    for (int x = 0; x < w; ++x) {
+      for (int i = 0; i < c; ++i) {
+        const float pxlF = buffer[(w * y + x) * c + i] * 65535.0f + errIn[x * c + i];
+        auto pxlU16 = llrintf(pxlF);
+        if (pxlU16 < 0) pxlU16 = 0;
+        if (pxlU16 > 65535) pxlU16 = 65535;
+        ret[(w * y + x) * c + i] = (uint16_t)(pxlU16 >> 8 | pxlU16 << 8);
+
+        float err = pxlU16 - pxlF;
 
         if (x < w - 1) errIn[x * c + i] += err * (7.0f / 16.0f);
         if (x > 0) errOut[(x - 1) * c + i] += err * (3.0f / 16.0f);
@@ -274,6 +315,7 @@ int main(int nArgs, const char* args[])
       "-o", "output1.fff.data",
       "-o", "output1.png",
       "-o", "output1.jpg",
+      "-o16", "output1.161616.png",
       "-rot90",
       "-o", "output1_r90.jpg",
       "-rot180",
@@ -339,7 +381,9 @@ int main(int nArgs, const char* args[])
       buffer = expand8to32(buf8, w, h, c);
       free(buf8);
     }
-    else if (!strcmp(args[arg], "-o")) {
+    else if (!strcmp(args[arg], "-o") || !strcmp(args[arg], "-o16")) {
+      int bits = strcmp(args[arg], "-o16") ? -1 : 16;
+
       if (!more) {
         std::cerr << "missing argument to output flag" << std::endl;
         die(__LINE__);
@@ -376,12 +420,26 @@ int main(int nArgs, const char* args[])
         std::cout << "wrote " << args[arg] << std::endl;
       }
       else if (strEndsWith(args[arg], ".png")) {
-        auto dithered = dither8(buffer, w, h, c);
-        if (!stbi_write_png(args[arg], w, h, c, dithered, 0)) {
-          std::cerr << "stbi_write_png() failure" << std::endl;
-          die(__LINE__);
+        if (bits == 16) {
+          std::cerr << "dithering to 16-bit output" << std::endl;
+          auto dithered = dither16(buffer, w, h, c);
+          std::cerr << "writing 16-bit PNG to "<< args[arg] << std::endl;
+		  if (!stbi_write_png16(args[arg], w, h, c, dithered, 0)) {
+            std::cerr << "stbi_write_png16() failure" << std::endl;
+            die(__LINE__);
+          }
+          free(dithered);
         }
-        free(dithered);
+        else {
+          std::cerr << "dithering to 8-bit output" << std::endl;
+          auto dithered = dither8(buffer, w, h, c);
+          std::cerr << "writing 8-bit PNG to "<< args[arg] << std::endl;
+		  if (!stbi_write_png(args[arg], w, h, c, dithered, 0)) {
+            std::cerr << "stbi_write_png() failure" << std::endl;
+            die(__LINE__);
+          }
+          free(dithered);
+        }
         std::cout << "wrote " << args[arg] << std::endl;
       }
       else {
