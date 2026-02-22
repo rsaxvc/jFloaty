@@ -322,6 +322,9 @@ int main(int nArgs, const char* args[])
       "-o", "output1_r90_180_270.jpg",
       "-dither8",
       "-o", "output1_r90_180_270_dither.jpg",
+      "-rot180",
+      "-q", "10",
+      "-o", "output1_q10.jpg",
       //FFF2JPG
       //"-i", "input2.fff.data",
       //"-o", "output2.fff.data",
