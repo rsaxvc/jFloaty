@@ -157,8 +157,6 @@ static uint8_t* dither8(const float* buffer, int w, int h, int c) {
   return ret;
 }
 
-//huge-hack! Outputs reverse-endian pixels
-//TODO: fix stbi_write_png16() to take native pixels
 static uint16_t* dither16(const float* buffer, int w, int h, int c) {
   uint16_t* ret = (uint16_t*)malloc(w * h * c * 2);
   float* errLine0 = (float*)calloc(w * c, sizeof(float));
@@ -178,7 +176,7 @@ static uint16_t* dither16(const float* buffer, int w, int h, int c) {
         auto pxlU16 = llrintf(pxlF);
         if (pxlU16 < 0) pxlU16 = 0;
         if (pxlU16 > 65535) pxlU16 = 65535;
-        ret[(w * y + x) * c + i] = (uint16_t)(pxlU16 >> 8 | pxlU16 << 8);
+        ret[(w * y + x) * c + i] = (uint16_t)pxlU16;
 
         float err = pxlU16 - pxlF;
 
@@ -424,7 +422,7 @@ int main(int nArgs, const char* args[])
           std::cerr << "dithering to 16-bit output" << std::endl;
           auto dithered = dither16(buffer, w, h, c);
           std::cerr << "writing 16-bit PNG to "<< args[arg] << std::endl;
-		  if (!stbi_write_png16(args[arg], w, h, c, dithered, 0)) {
+          if (!stbi_write_png16(args[arg], w, h, c, dithered, 0)) {
             std::cerr << "stbi_write_png16() failure" << std::endl;
             die(__LINE__);
           }
@@ -434,7 +432,7 @@ int main(int nArgs, const char* args[])
           std::cerr << "dithering to 8-bit output" << std::endl;
           auto dithered = dither8(buffer, w, h, c);
           std::cerr << "writing 8-bit PNG to "<< args[arg] << std::endl;
-		  if (!stbi_write_png(args[arg], w, h, c, dithered, 0)) {
+          if (!stbi_write_png(args[arg], w, h, c, dithered, 0)) {
             std::cerr << "stbi_write_png() failure" << std::endl;
             die(__LINE__);
           }
