@@ -522,9 +522,13 @@ int main(int nArgs, const char* args[])
 
         std::cout << "Reading data from " << args[arg] << std::endl;
         uint16_t* buf16 = stbi_load_16(args[arg], &w, &h, &c, c);
+        if (!buf16) {
+          std::cerr << "stbi_load_16() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
+          die(__LINE__);
+        }
         buffer = expand16to32(buf16, w, h, c);
         if (!buffer) {
-          std::cerr << "stbi_load_16() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
+          std::cerr << "expand16to32 failure" << std::endl;
           die(__LINE__);
         }
         free(buf16);
