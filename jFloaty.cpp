@@ -65,6 +65,8 @@ static void usage(const char* progName) {
   std::cerr << "Arguments:" << std::endl;
   std::cerr << "\t-i <filename> #load file into buffer" << std::endl;
   std::cerr << "\t-s #generate some statistics" << std::endl;
+  std::cerr << "\t-m <number> #multiply pixels by float" << std::endl;
+  std::cerr << "\t-d <number> #divide pixels by float" << std::endl;
   std::cerr << "\t-o <filename> #safe buffer to file" << std::endl;
   std::cerr << "\t-o16 <filename> #safe buffer to 16-bit file" << std::endl;
   std::cerr << std::endl;
@@ -95,6 +97,10 @@ static bool strEndsWith(const char* haystack, const char* needle) {
 }
 
 static float * rot90(float * in, int & w, int & h, int c) {
+  if (!w || !h || !c || !in) {
+    std::cerr << "invalid rotation input" << std::endl;
+    die(__LINE__);
+  }
   float* out = (float*)malloc(sizeof(float) * w * h * c);
   if (!out) {
     std::cerr << "out of memory" << std::endl;
@@ -354,6 +360,22 @@ int main(int nArgs, const char* args[])
       arg++;
       q = strtol(args[arg], NULL, 10);
       std::cout << "JPEG encoder quality factor set to " << q << std::endl;
+    }
+    else if (!strcmp(args[arg], "-m") && more) {
+      arg++;
+      float g = strtof(args[arg], NULL);
+      std::cout << "Multiplying pixels by " << g << std::endl;
+      for (int i = 0; i < w * h * c; ++i) {
+        buffer[i] *= g;
+      }
+    }
+    else if (!strcmp(args[arg], "-d") && more) {
+      arg++;
+      float g = strtof(args[arg], NULL);
+      std::cout << "Dividing pixels by " << g << std::endl;
+      for (int i = 0; i < w * h * c; ++i) {
+        buffer[i] /= g;
+      }
     }
     else if (!strcmp(args[arg], "-rot90")) {
       buffer = rot90(buffer, w, h, c);
