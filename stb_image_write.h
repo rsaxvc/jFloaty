@@ -1136,7 +1136,7 @@ static void stbiw__encode_png_line(unsigned char *pixels, int stride_bytes, int 
    }
 }
 
-STBIWDEF unsigned char *stbi_write_png_to_mem(const unsigned char *pixels, int stride_bytes, int x, int y, int n, int *out_len)
+static unsigned char* stbi_write_pngs_to_mem(const void* pixels, int stride_bytes, int x, int y, int n, int s, int* out_len)
 {
    int force_filter = stbi_write_force_png_filter;
    int ctype[5] = { -1, 0, 4, 2, 6 };
@@ -1146,23 +1146,23 @@ STBIWDEF unsigned char *stbi_write_png_to_mem(const unsigned char *pixels, int s
    int j,zlen;
 
    if (stride_bytes == 0)
-      stride_bytes = x * n;
+      stride_bytes = x * n * s;
 
    if (force_filter >= 5) {
       force_filter = -1;
    }
 
-   filt = (unsigned char *) STBIW_MALLOC((x*n+1) * y); if (!filt) return 0;
-   line_buffer = (signed char *) STBIW_MALLOC(x * n); if (!line_buffer) { STBIW_FREE(filt); return 0; }
+   filt = (unsigned char*)STBIW_MALLOC((x*n*s+1) * y); if (!filt) return 0;
+   line_buffer = (signed char*)STBIW_MALLOC(x*n*s); if (!line_buffer) { STBIW_FREE(filt); return 0; }
    for (j=0; j < y; ++j) {
       int filter_type;
       if (force_filter > -1) {
          filter_type = force_filter;
-         stbiw__encode_png_line((unsigned char*)(pixels), stride_bytes, x, y, j, n, 1, force_filter, line_buffer);
+         stbiw__encode_png_line((unsigned char*)(pixels), stride_bytes, x, y, j, n, s, force_filter, line_buffer);
       } else { // Estimate the best filter by running through all of them:
          int best_filter = 0, best_filter_val = 0x7fffffff, est, i;
-         for (filter_type = 1; filter_type < 5; filter_type++) {
-            stbiw__encode_png_line((unsigned char*)(pixels), stride_bytes, x, y, j, n, 1, filter_type, line_buffer);
+         for (filter_type = 0; filter_type < 5; filter_type++) {
+             stbiw__encode_png_line((unsigned char*)(pixels), stride_bytes, x, y, j, n, s, filter_type, line_buffer);
 
             // Estimate the entropy of the line using this filter; the less, the better.
             est = 0;
@@ -1175,16 +1175,16 @@ STBIWDEF unsigned char *stbi_write_png_to_mem(const unsigned char *pixels, int s
             }
          }
          if (filter_type != best_filter) {  // If the last iteration already got us the best filter, don't redo it
-            stbiw__encode_png_line((unsigned char*)(pixels), stride_bytes, x, y, j, n, 1, best_filter, line_buffer);
+            stbiw__encode_png_line((unsigned char*)(pixels), stride_bytes, x, y, j, n, s, best_filter, line_buffer);
             filter_type = best_filter;
          }
       }
       // when we get here, filter_type contains the filter type, and line_buffer contains the data
-      filt[j*(x*n+1)] = (unsigned char) filter_type;
-      STBIW_MEMMOVE(filt+j*(x*n+1)+1, line_buffer, x*n);
+      filt[j*(x*n*s+1)] = (unsigned char)filter_type;
+      STBIW_MEMMOVE(filt+j*(x*n*s+1)+1, line_buffer, x*n*s);
    }
    STBIW_FREE(line_buffer);
-   zlib = stbi_zlib_compress(filt, y*( x*n+1), &zlen, stbi_write_png_compression_level);
+   zlib = stbi_zlib_compress(filt, y * (x * n * s + 1), &zlen, stbi_write_png_compression_level);
    STBIW_FREE(filt);
    if (!zlib) return 0;
 
@@ -1199,7 +1199,7 @@ STBIWDEF unsigned char *stbi_write_png_to_mem(const unsigned char *pixels, int s
    stbiw__wptag(o, "IHDR");
    stbiw__wp32(o, x);
    stbiw__wp32(o, y);
-   *o++ = 8;
+   *o++ = 8*s;
    *o++ = STBIW_UCHAR(ctype[n]);
    *o++ = 0;
    *o++ = 0;
@@ -1222,92 +1222,14 @@ STBIWDEF unsigned char *stbi_write_png_to_mem(const unsigned char *pixels, int s
    return out;
 }
 
+STBIWDEF unsigned char* stbi_write_png_to_mem(const unsigned char* pixels, int stride_bytes, int x, int y, int n, int* out_len)
+{
+  return stbi_write_pngs_to_mem(pixels, stride_bytes, x, y, n, sizeof(*pixels), out_len);
+}
+
 STBIWDEF unsigned char* stbi_write_png16_to_mem(const unsigned short* pixels, int stride_bytes, int x, int y, int n, int* out_len)
 {
-  int force_filter = stbi_write_force_png_filter;
-  int ctype[5] = { -1, 0, 4, 2, 6 };
-  unsigned char sig[8] = { 137,80,78,71,13,10,26,10 };
-  unsigned char * zlib, * out, * o;
-  unsigned char* filt;
-  signed char* line_buffer;
-  int j, zlen;
-
-  if (stride_bytes == 0)
-    stride_bytes = x * n * 2;
-
-  if (force_filter >= 5) {
-    force_filter = -1;
-  }
-
-  filt = (unsigned char*)STBIW_MALLOC((x * n * 2 + 1) * y); if (!filt) return 0;
-  line_buffer = (signed char*)STBIW_MALLOC(x * n * 2); if (!line_buffer) { STBIW_FREE(filt); return 0; }
-  for (j = 0; j < y; ++j) {
-    int filter_type;
-    if (force_filter > -1) {
-      filter_type = force_filter;
-      stbiw__encode_png_line((unsigned char*)(pixels), stride_bytes, x, y, j, n, 2, force_filter, line_buffer);
-    }
-    else { // Estimate the best filter by running through all of them:
-      int best_filter = 0, best_filter_val = 0x7fffffff, est, i;
-      for (filter_type = 0; filter_type < 5; filter_type++) {
-        stbiw__encode_png_line((unsigned char*)(pixels), stride_bytes, x, y, j, n, 2, filter_type, line_buffer);
-
-        // Estimate the entropy of the line using this filter; the less, the better.
-        est = 0;
-        for (i = 0; i < x * n; ++i) {
-          est += abs((signed short)line_buffer[i]);
-        }
-        if (est < best_filter_val) {
-          best_filter_val = est;
-          best_filter = filter_type;
-        }
-      }
-      if (filter_type != best_filter) {  // If the last iteration already got us the best filter, don't redo it
-        stbiw__encode_png_line((unsigned char*)(pixels), stride_bytes, x, y, j, n, 2, best_filter, line_buffer);
-        filter_type = best_filter;
-      }
-    }
-    // when we get here, filter_type contains the filter type, and line_buffer contains the data
-    filt[j * (x * n * 2 + 1)] = (unsigned char)filter_type;
-    STBIW_MEMMOVE(filt + j * (x * n * 2 + 1) + 1, line_buffer, x * n * 2);
-  }
-  STBIW_FREE(line_buffer);
-  zlib = stbi_zlib_compress((unsigned char*)filt, y * (x * n * 2 + 1), &zlen, stbi_write_png_compression_level);
-  STBIW_FREE(filt);
-  if (!zlib) return 0;
-
-  // each tag requires 12 bytes of overhead
-  out = (unsigned char*)STBIW_MALLOC(8 + 12 + 13 + 12 + zlen + 12);
-  if (!out) return 0;
-  *out_len = 8 + 12 + 13 + 12 + zlen + 12;
-
-  o = out;
-  STBIW_MEMMOVE(o, sig, 8); o += 8;
-  stbiw__wp32(o, 13); // header length
-  stbiw__wptag(o, "IHDR");
-  stbiw__wp32(o, x);
-  stbiw__wp32(o, y);
-  *o++ = 16;
-   *o++ = STBIW_UCHAR(ctype[n]);
-   *o++ = 0;
-   *o++ = 0;
-   *o++ = 0;
-   stbiw__wpcrc(&o, 13);
-
-   stbiw__wp32(o, zlen);
-   stbiw__wptag(o, "IDAT");
-   STBIW_MEMMOVE(o, zlib, zlen);
-   o += zlen;
-   STBIW_FREE(zlib);
-   stbiw__wpcrc(&o, zlen);
-
-   stbiw__wp32(o,0);
-   stbiw__wptag(o, "IEND");
-   stbiw__wpcrc(&o,0);
-
-   STBIW_ASSERT(o == out + *out_len);
-
-   return out;
+  return stbi_write_pngs_to_mem(pixels, stride_bytes, x, y, n, sizeof(*pixels), out_len);
 }
 
 #ifndef STBI_WRITE_NO_STDIO
