@@ -76,7 +76,7 @@ static void usage(const char* progName) {
   std::cerr << "\t-dither8 #dither buffer to 256 shades" << std::endl;
   std::cerr << "\t-floor8 #round buffer down to 256 shades" << std::endl;
   std::cerr << "\t-round8 #round buffer down to 256 shades" << std::endl;
-  std::cerr << "\t-d <number> #divide pixels by float" << std::endl;
+  std::cerr << "\t-clip #clip buffer between 0 and 1" << std::endl;
   std::cerr << std::endl;
   std::cerr << "Misc Arguments:" << std::endl;
   std::cerr << "\t-idct #run idct self test" << std::endl;
@@ -408,6 +408,12 @@ int main(int nArgs, const char* args[])
       free(buffer);
       buffer = expand8to32(buf8, w, h, c);
       free(buf8);
+    }
+    else if (!strcmp(args[arg], "-clip")) {
+      for (int i = 0; i < w * h * c; ++i) {
+        if (buffer[i] > 1.0f) buffer[i] = 1.0f;
+        if (buffer[i] < 0.0f) buffer[i] = 0.0f;
+      }
     }
     else if (!strcmp(args[arg], "-o") || !strcmp(args[arg], "-o16")) {
       int bits = strcmp(args[arg], "-o16") ? -1 : 16;
