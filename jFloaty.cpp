@@ -551,5 +551,7 @@ int main(int nArgs, const char* args[])
     }
   }
 
+  free(buffer);
+  buffer = NULL;
   return 0;
 }
