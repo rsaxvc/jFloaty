@@ -1152,7 +1152,7 @@ static void stbiw__encode_png_line(unsigned char *pixels, int stride_bytes, int 
    unsigned char *z = pixels + stride_bytes * (stbi__flip_vertically_on_write ? height-1-y : y);
    int signed_stride = stbi__flip_vertically_on_write ? -stride_bytes : stride_bytes;
 
-   uint16_t u = 1;
+   unsigned short u = 1;
    int le = *(char*)&u && s == 2;
 
    if (type==0 && !le) {
