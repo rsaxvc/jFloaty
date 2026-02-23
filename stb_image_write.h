@@ -1575,7 +1575,7 @@ static int stbi_write_jpg_core(stbi__write_context *s, int width, int height, in
    }
 
    quality = quality ? quality : 90;
-   subsample = quality <= 90 ? 1 : 0;
+   subsample = 0;
    quality = quality < 1 ? 1 : quality > 100 ? 100 : quality;
    quality = quality < 50 ? 5000 / quality : 200 - quality * 2;
 
