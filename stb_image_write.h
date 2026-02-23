@@ -122,7 +122,7 @@ CREDITS:
    Jon Olick              -    original jo_jpeg.cpp code
    Daniel Gibson          -    integrate JPEG, allow external zlib
    Aarni Koskela          -    allow choosing PNG filter
-   Richard Allen          -    16-bit PNG
+   Richard Allen          -    16-bit PNG, PFM
 
    bugfixes:
       github:Chribba
@@ -174,6 +174,7 @@ STBIWDEF int stbi_write_force_png_filter;
 #endif
 
 #ifndef STBI_WRITE_NO_STDIO
+STBIWDEF int stbi_write_pfm(char const* filename, int w, int h, int comp, const float* data);
 STBIWDEF int stbi_write_png(char const *filename, int w, int h, int comp, const void  *data, int stride_in_bytes);
 STBIWDEF int stbi_write_png16(char const* filename, int w, int h, int comp, const void* data, int stride_in_bytes);
 STBIWDEF int stbi_write_bmp(char const *filename, int w, int h, int comp, const void  *data);
@@ -189,6 +190,7 @@ STBIWDEF int stbiw_convert_wchar_to_utf8(char *buffer, size_t bufferlen, const w
 
 typedef void stbi_write_func(void *context, void *data, int size);
 
+STBIWDEF int stbi_write_pfm_to_func(stbi_write_func* func, void* context, int w, int h, int comp, const float* data);
 STBIWDEF int stbi_write_png_to_func(stbi_write_func *func, void *context, int w, int h, int comp, const void  *data, int stride_in_bytes);
 STBIWDEF int stbi_write_png16_to_func(stbi_write_func* func, void* context, int w, int h, int comp, const void* data, int stride_in_bytes);
 STBIWDEF int stbi_write_bmp_to_func(stbi_write_func *func, void *context, int w, int h, int comp, const void  *data);
@@ -807,6 +809,53 @@ STBIWDEF int stbi_write_hdr(char const *filename, int x, int y, int comp, const 
 }
 #endif // STBI_WRITE_NO_STDIO
 
+//////////////////////////////////////////////////////////////////////////////
+//
+// PFM writer
+//
+// by Richard Allen
+
+#ifndef STBI_WRITE_NO_STDIO
+static int stbi_write_pfm_core(stbi__write_context* s, int x, int y, int comp, float* data)
+{
+  if (y <= 0 || x <= 0 || data == NULL || !(comp == 1 || comp == 3))
+    return 0;
+  else {
+    int i, len;
+    char buffer[128];
+    unsigned short u = 1;
+#ifdef __STDC_LIB_EXT1__
+    len = sprintf_s(buffer, sizeof(buffer), "%s\n%d %d\n%s1.0\n", comp == 3 ? "PF" : "pf", x, y, *(char*)&u ? "-" : "");
+#else
+    len = snprintf(buffer, sizeof(buffer), "%s\n%d %d\n%s1.0\n", comp == 3 ? "PF" : "pf", x, y, *(char*)&u ? "-" : "");
+#endif
+    s->func(s->context, buffer, len);
+
+    for (i = 0; i < y; i++)
+      s->func(s->context, data + x * comp * (stbi__flip_vertically_on_write ? i : y - 1 - i), x * comp * sizeof(float));
+    return 1;
+  }
+}
+
+STBIWDEF int stbi_write_pfm_to_func(stbi_write_func* func, void* context, int x, int y, int comp, const float* data)
+{
+  stbi__write_context s = { 0 };
+  stbi__start_write_callbacks(&s, func, context);
+  return stbi_write_pfm_core(&s, x, y, comp, (float*)data);
+}
+
+STBIWDEF int stbi_write_pfm(char const* filename, int x, int y, int comp, const float* data)
+{
+  stbi__write_context s = { 0 };
+  if (stbi__start_write_file(&s, filename)) {
+    int r = stbi_write_pfm_core(&s, x, y, comp, (float*)data);
+    stbi__end_write_file(&s);
+    return r;
+  }
+  else
+    return 0;
+}
+#endif // STBI_WRITE_NO_STDIO
 
 //////////////////////////////////////////////////////////////////////////////
 //

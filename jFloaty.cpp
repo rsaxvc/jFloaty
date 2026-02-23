@@ -321,6 +321,7 @@ int main(int nArgs, const char* args[])
     static const char* dummyArgs[] = { 
       args[0], "-h", "-idct",
       "-i", "input1.jpg", "-s",
+      "-o", "output1.pfm",
       "-o", "output1.fff.data",
       "-o", "output1.png",
       "-o", "output1.jpg",
@@ -452,6 +453,10 @@ int main(int nArgs, const char* args[])
           die(__LINE__);
         }
         std::cout << "wrote " << args[arg] << std::endl;
+      }
+      else if (strEndsWith(args[arg], ".pfm")) {
+        std::cerr << "writing 32-bit PFM to" << args[arg] << std::endl;
+        stbi_write_pfm(args[arg], w, h, c, buffer);
       }
       else if (strEndsWith(args[arg], ".png")) {
         if (bits == 16) {
