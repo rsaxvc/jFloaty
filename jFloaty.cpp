@@ -66,6 +66,7 @@ static void usage(const char* progName) {
   std::cerr << "\t-w <width> #Set image width (only for raw-float loading)" << std::endl;
   std::cerr << "\t-i <filename> #load file into buffer" << std::endl;
   std::cerr << "\t-q 0-99 #Set JPEG encoder quality factor" << std::endl;
+  std::cerr << "\t-subsample N #Set JPEG encoder subsampling(-1=auto, 0=false, 1=true)" << std::endl;
   std::cerr << "\t-o <filename> #safe buffer to file" << std::endl;
   std::cerr << "\t-o16 <filename> #safe buffer to 16-bit file" << std::endl;
   std::cerr << std::endl;
@@ -319,8 +320,11 @@ int main(int nArgs, const char* args[])
     std::cerr << "No arguments detected, trying to process test files" << std::endl;
 
     static const char* dummyArgs[] = { 
-      args[0], "-h", "-idct",
+      args[0], "-idct",
       "-i", "input1.jpg", "-s",
+      "-subsample", "1", "-o", "output1_ss.jpg",
+      "-subsample", "0", "-o", "output1_ns.jpg",
+      "-subsample", "-1",
       "-o", "output1.pfm",
       "-o", "output1.fff.data",
       "-o", "output1.png",
@@ -366,6 +370,14 @@ int main(int nArgs, const char* args[])
       arg++;
       q = strtol(args[arg], NULL, 10);
       std::cout << "JPEG encoder quality factor set to " << q << std::endl;
+    }
+    else if (!strcmp(args[arg], "-subsample") && more) {
+      arg++;
+      stbi_write_jpg_subsample = strtol(args[arg], NULL, 10);
+      std::cout << "JPEG encoder factor set to ";
+      if (stbi_write_jpg_subsample >= 1) std::cout << "subsample" << std::endl;
+      else if (stbi_write_jpg_subsample < 0) std::cout << "auto-subsample" << std::endl;
+      else std::cout << "no subsample" << std::endl;
     }
     else if (!strcmp(args[arg], "-m") && more) {
       arg++;
