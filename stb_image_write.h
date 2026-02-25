@@ -171,6 +171,7 @@ LICENSE
 STBIWDEF int stbi_write_tga_with_rle;
 STBIWDEF int stbi_write_png_compression_level;
 STBIWDEF int stbi_write_force_png_filter;
+STBIWDEF int stbi_write_jpg_subsample;
 #endif
 
 #ifndef STBI_WRITE_NO_STDIO
@@ -257,10 +258,12 @@ STBIWDEF void stbi_flip_vertically_on_write(int flip_boolean);
 static int stbi_write_png_compression_level = 8;
 static int stbi_write_tga_with_rle = 1;
 static int stbi_write_force_png_filter = -1;
+static int stbi_write_jpg_subsample = -1;
 #else
 int stbi_write_png_compression_level = 8;
 int stbi_write_tga_with_rle = 1;
 int stbi_write_force_png_filter = -1;
+int stbi_write_jpg_subsample = -1;
 #endif
 
 static int stbi__flip_vertically_on_write = 0;
@@ -1575,7 +1578,7 @@ static int stbi_write_jpg_core(stbi__write_context *s, int width, int height, in
    }
 
    quality = quality ? quality : 90;
-   subsample = 0;
+   subsample = stbi_write_jpg_subsample >= 1 || (stbi_write_jpg_subsample <= -1 && quality < 90);
    quality = quality < 1 ? 1 : quality > 100 ? 100 : quality;
    quality = quality < 50 ? 5000 / quality : 200 - quality * 2;
 
