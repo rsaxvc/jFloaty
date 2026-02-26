@@ -562,7 +562,7 @@ int main(int nArgs, const char* args[])
         }
         std::cout << "Loaded " << args[arg] << " " << w << "x"<< h << " c=" << c << std::endl;
       }
-      else if (strEndsWith(args[arg], ".png")) {
+      else if (strEndsWith(args[arg], ".png") || strEndsWith(args[arg], ".bmp")) {
         std::cout << "Checking channel count:";
         if (!stbi_info(args[arg], &w, &h, &c)) {
           std::cerr << "stbi_info_from_file() failure: " << stbi_failure_reason() << " " << args[arg] << std::endl;
