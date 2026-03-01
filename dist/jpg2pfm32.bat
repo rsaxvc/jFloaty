@@ -1,0 +1,1 @@
+"%~dp0"jFloaty.exe -v -i "%~1" -o "%~1".pfm
