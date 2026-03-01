@@ -8,6 +8,10 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+static constexpr int JFLOATY_VERSION_MAJOR = 0;
+static constexpr int JFLOATY_VERSION_MINOR = 0;
+static constexpr int JFLOATY_VERSION_MICRO = 1;
+
 static int desired_channels = 1;
 
 static int fltVecCmp(const void* l_, const void* r_) {
@@ -317,10 +321,10 @@ int main(int nArgs, const char* args[])
   if (nArgs == 1) {
     usage(args[0]);
 
-    std::cerr << "No arguments detected, trying to process test files" << std::endl;
+    std::cerr << "No arguments detected, trying to process test arguments" << std::endl;
 
     static const char* dummyArgs[] = { 
-      args[0], "-idct",
+      args[0], "-v", "-idct",
       "-i", "input1.jpg", "-s",
       "-subsample", "1", "-o", "output1_ss.jpg",
       "-subsample", "0", "-o", "output1_ns.jpg",
@@ -358,7 +362,10 @@ int main(int nArgs, const char* args[])
   for (int arg = 1; arg < nArgs; ++arg) {
     bool more = arg + 1 < nArgs;
 
-    if (!strcmp(args[arg], "-h") || !strcmp(args[arg], "--help")) {
+    if (!strcmp(args[arg], "-v")) {
+      printf("%s version %i.%i.%i\n", args[0], JFLOATY_VERSION_MAJOR, JFLOATY_VERSION_MINOR, JFLOATY_VERSION_MICRO);
+    }
+    else if (!strcmp(args[arg], "-h") || !strcmp(args[arg], "--help")) {
       usage(args[0]);
     }
     else if (!strcmp(args[arg], "-w") && more) {
