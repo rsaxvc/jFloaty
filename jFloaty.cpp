@@ -79,6 +79,7 @@ static void usage(const char* progName) {
   std::cerr << "\t-m <number> #multiply pixels by float" << std::endl;
   std::cerr << "\t-d <number> #divide pixels by float" << std::endl;
   std::cerr << "\t-dither8 #dither buffer to 256 shades" << std::endl;
+  std::cerr << "\t-dither7 #dither buffer to 128 shades" << std::endl;
   std::cerr << "\t-floor8 #round buffer down to 256 shades" << std::endl;
   std::cerr << "\t-round8 #round buffer down to 256 shades" << std::endl;
   std::cerr << "\t-clip #clip buffer between 0 and 1" << std::endl;
@@ -133,6 +134,45 @@ static float* rot180(float* in, int & w, int & h, int c) {
 
 static float* rot270(float* in, int & w, int & h, int c) {
   return rot180(rot90(in, w, h, c), w, h, c);
+}
+
+//TODO: stop copy/pasting slight derivatives of this function
+static float* dither(const float* buffer, int w, int h, int c, int n) {
+  float* ret = (float*)malloc(w * h * c * sizeof(float));
+  float* errLine0 = (float*)calloc(w * c, sizeof(float));
+  float* errLine1 = (float*)calloc(w * c, sizeof(float));
+  float* errLines[2] = { errLine0, errLine1 };
+  if (!ret || !errLine0 || !errLine1) {
+    std::cerr << "out of memory" << std::endl;
+    die(__LINE__);
+  }
+
+  for (int y = 0; y < h; ++y) {
+    float* errIn = errLines[y % 2];
+    float* errOut = errLines[(y + 1) % 2];
+    for (int x = 0; x < w; ++x) {
+      for (int i = 0; i < c; ++i) {
+        const float pxlF = buffer[(w * y + x) * c + i] * (n-1.0f) + errIn[x * c + i];
+        auto pxlU = llrintf(pxlF);
+        if (pxlU < 0) pxlU = 0;
+        if (pxlU >= n) pxlU = n;
+        float pxlOut = (float)pxlU / (float)n;
+        ret[(w * y + x) * c + i] = pxlOut;
+
+        float err = pxlU - pxlF;
+
+        if (x < w - 1) errIn[x * c + i] += err * (7.0f / 16.0f);
+        if (x > 0) errOut[(x - 1) * c + i] += err * (3.0f / 16.0f);
+        errOut[x * c + i] += err * (5.0f / 16.0f);
+        if (x < w - 1) errOut[(x + 1) * c + i] += err * (1.0f / 16.0f);
+      }
+    }
+    memset(errIn, 0x00, sizeof(float) * w * c);
+  }
+
+  free(errLine0);
+  free(errLine1);
+  return ret;
 }
 
 //TODO: isolate the dither from the pixel conversion and make adjustable bit depth
@@ -313,6 +353,11 @@ static void stats(const float* buf, size_t n, int c) {
   free(pixels);
 }
 
+static int strstartswith(const char* haystack, const char* needle) {
+  auto len = strlen(needle);
+  return strncmp(haystack, needle, len);
+}
+
 
 int main(int nArgs, const char* args[])
 {
@@ -325,7 +370,8 @@ int main(int nArgs, const char* args[])
 
     static const char* dummyArgs[] = { 
       args[0], "-v", "-idct",
-      "-i", "input1.jpg", "-s",
+      "-i", "input1.jpg",       "-dither8",
+"-s",
       "-subsample", "1", "-o", "output1_ss.jpg",
       "-subsample", "0", "-o", "output1_ns.jpg",
       "-subsample", "-1",
@@ -411,11 +457,12 @@ int main(int nArgs, const char* args[])
     else if (!strcmp(args[arg], "-rot270")) {
       buffer = rot270(buffer, w, h, c);
     }
-    else if (!strcmp(args[arg], "-dither8")) {
-      uint8_t* buf8 = dither8(buffer, w, h, c);
+    else if (!strstartswith(args[arg], "-dither")) {
+      int ditherbits = strtod(args[arg] + strlen("-dither"), NULL);
+      int shades = 1 << ditherbits;
+      float* newBuf = dither(buffer, w, h, c, shades);
       free(buffer);
-      buffer = expand8to32(buf8, w, h, c);
-      free(buf8);
+      buffer = newBuf;
     }
     else if (!strcmp(args[arg], "-floor8")) {
       uint8_t* buf8 = floor8(buffer, w, h, c);
