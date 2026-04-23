@@ -152,7 +152,7 @@ static float* dither(const float* buffer, int w, int h, int c, int n) {
     float* errOut = errLines[(y + 1) % 2];
     for (int x = 0; x < w; ++x) {
       for (int i = 0; i < c; ++i) {
-        const float pxlF = buffer[(w * y + x) * c + i] * (n-1.0f) + errIn[x * c + i];
+        const float pxlF = buffer[(w * y + x) * c + i] * n - errIn[x * c + i];
         auto pxlU = llrintf(pxlF);
         if (pxlU < 0) pxlU = 0;
         if (pxlU >= n) pxlU = n;
@@ -161,7 +161,7 @@ static float* dither(const float* buffer, int w, int h, int c, int n) {
 
         float err = pxlU - pxlF;
 
-        if (x < w - 1) errIn[x * c + i] += err * (7.0f / 16.0f);
+        if (x < w - 1) errOut[x * c + i] += err * (7.0f / 16.0f);
         if (x > 0) errOut[(x - 1) * c + i] += err * (3.0f / 16.0f);
         errOut[x * c + i] += err * (5.0f / 16.0f);
         if (x < w - 1) errOut[(x + 1) * c + i] += err * (1.0f / 16.0f);
@@ -191,7 +191,7 @@ static uint8_t* dither8(const float* buffer, int w, int h, int c) {
     float* errOut = errLines[(y + 1) % 2];
     for (int x = 0; x < w; ++x) {
       for (int i = 0; i < c; ++i) {
-        const float pxlF = buffer[(w * y + x) * c + i] * 255.0f + errIn[x * c + i];
+        const float pxlF = buffer[(w * y + x) * c + i] * 255.0f - errIn[x * c + i];
         auto pxlU8 = llrintf(pxlF);
         if (pxlU8 < 0) pxlU8 = 0;
         if (pxlU8 > 255) pxlU8 = 255;
@@ -199,7 +199,7 @@ static uint8_t* dither8(const float* buffer, int w, int h, int c) {
 
         float err = pxlU8 - pxlF;
 
-        if (x < w - 1) errIn[x * c + i] += err * (7.0f / 16.0f);
+        if (x < w - 1) errOut[x * c + i] += err * (7.0f / 16.0f);
         if (x > 0) errOut[(x - 1) * c + i] += err * (3.0f / 16.0f);
         errOut[x * c + i] += err * (5.0f / 16.0f);
         if (x < w - 1) errOut[(x + 1) * c + i] += err * (1.0f / 16.0f);
@@ -228,7 +228,7 @@ static uint16_t* dither16(const float* buffer, int w, int h, int c) {
     float* errOut = errLines[(y + 1) % 2];
     for (int x = 0; x < w; ++x) {
       for (int i = 0; i < c; ++i) {
-        const float pxlF = buffer[(w * y + x) * c + i] * 65535.0f + errIn[x * c + i];
+        const float pxlF = buffer[(w * y + x) * c + i] * 65535.0f - errIn[x * c + i];
         auto pxlU16 = llrintf(pxlF);
         if (pxlU16 < 0) pxlU16 = 0;
         if (pxlU16 > 65535) pxlU16 = 65535;
@@ -236,7 +236,7 @@ static uint16_t* dither16(const float* buffer, int w, int h, int c) {
 
         float err = pxlU16 - pxlF;
 
-        if (x < w - 1) errIn[x * c + i] += err * (7.0f / 16.0f);
+        if (x < w - 1) errOut[x * c + i] += err * (7.0f / 16.0f);
         if (x > 0) errOut[(x - 1) * c + i] += err * (3.0f / 16.0f);
         errOut[x * c + i] += err * (5.0f / 16.0f);
         if (x < w - 1) errOut[(x + 1) * c + i] += err * (1.0f / 16.0f);
